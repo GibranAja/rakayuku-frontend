@@ -1,20 +1,37 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
-import { authService } from '@/services/authService'
+
+import { authService } from '../../services/authService'
+
+const router = useRouter()
+const toast = useToast()
 
 const email = ref('')
 const password = ref('')
+const rememberMe = ref(false)
 const isLoading = ref(false)
 
-const toast = useToast()
+const emailError = computed(() => {
+  if (!email.value) return ''
+  return email.value.includes('@') ? '' : 'Email tidak valid'
+})
+
+const isFormReady = computed(() => {
+  return Boolean(email.value.trim()) && password.value.length >= 6 && !emailError.value
+})
 
 const handleSubmit = async (e: Event) => {
   e.preventDefault()
 
-  // Client-side validation
   if (!email.value.trim()) {
     toast.error('Email tidak boleh kosong')
+    return
+  }
+
+  if (emailError.value) {
+    toast.error(emailError.value)
     return
   }
 
@@ -23,238 +40,146 @@ const handleSubmit = async (e: Event) => {
     return
   }
 
+  if (password.value.length < 6) {
+    toast.error('Password minimal 6 karakter')
+    return
+  }
+
   isLoading.value = true
 
   try {
     const result = await authService.login(email.value, password.value)
-
-    // Success toast with user info
     toast.success(`Login berhasil! Selamat datang, ${result.user.name}`)
-
-    // Reset form
     email.value = ''
     password.value = ''
+    rememberMe.value = false
+    router.push('/')
   } catch (err) {
-    // Error toast
     const errorMessage = err instanceof Error ? err.message : 'Login gagal'
     toast.error(errorMessage)
   } finally {
     isLoading.value = false
   }
 }
+
+
 </script>
 
 <template>
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <h1>Masuk</h1>
-        <p>Masukkan email dan password Anda</p>
+  <div class="relative min-h-screen overflow-hidden bg-slate-200">
+    <div class="absolute inset-y-0 left-0 hidden w-1/2 bg-emerald-700 lg:block"></div>
+
+    <div class="relative z-10 mx-auto flex min-h-screen max-w-6xl items-center justify-center p-4 lg:p-8">
+      <div class="grid w-full max-w-5xl overflow-hidden rounded-3xl bg-slate-100 shadow-[0_24px_70px_rgba(15,23,42,0.28)] lg:grid-cols-2">
+        <section class="relative hidden min-h-[640px] overflow-hidden bg-linear-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-12 text-white lg:block">
+          <div class="pointer-events-none absolute inset-0">
+            <div class="absolute -left-14 -top-10 h-32 w-32 rounded-full bg-white/20"></div>
+            <div class="absolute right-12 top-14 h-24 w-24 rounded-full bg-emerald-200/30"></div>
+            <div class="absolute bottom-10 left-12 h-20 w-20 rounded-full bg-emerald-300/35"></div>
+            <div class="absolute bottom-2 right-4 h-56 w-56 rounded-full border-8 border-emerald-200/55"></div>
+          </div>
+
+          <div class="relative z-10 flex h-full flex-col justify-between">
+            <div class="flex items-center gap-3 text-emerald-100">
+              <span class="inline-block h-6 w-6 rounded-full bg-emerald-100"></span>
+              <span class="inline-block h-12 w-3 rounded-full bg-emerald-200/70"></span>
+              <span class="inline-block h-10 w-3 rounded-full bg-emerald-200/50"></span>
+              <span class="inline-block h-8 w-8 rounded-full border-4 border-emerald-100/70"></span>
+            </div>
+
+            <div class="max-w-xs space-y-4">
+              <h2 class="text-5xl font-semibold leading-[0.95] tracking-tight">
+                Rakayuku
+                <br />
+                Workspace
+              </h2>
+              <p class="text-lg leading-relaxed text-emerald-50/90">
+                ERP untuk furniture custom kayu. Kelola produksi, inventaris, dan penjualan dengan mudah.
+              </p>
+            </div>
+
+            <div class="flex items-end justify-between">
+              <div class="grid grid-cols-4 gap-2 opacity-80">
+                <span v-for="n in 12" :key="n" class="h-1.5 w-1.5 rounded-full bg-emerald-100/70"></span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="h-10 w-10 rounded-full bg-emerald-200/80"></span>
+                <span class="h-3 w-3 rounded-full bg-white/90"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="relative flex min-h-[640px] items-center justify-center bg-slate-100 px-6 py-10 sm:px-10">
+          <div class="pointer-events-none absolute inset-0 hidden lg:block">
+            <div class="absolute -right-24 -top-24 h-64 w-64 rounded-full border-[26px] border-emerald-200/60"></div>
+            <div class="absolute -bottom-20 right-14 h-44 w-44 rounded-full border-[18px] border-emerald-300/50"></div>
+          </div>
+
+          <div class="relative z-10 w-full max-w-lg rounded-2xl bg-white p-8 shadow-xl ring-1 ring-slate-200 sm:p-10">
+            <div class="mb-8 flex flex-col items-center gap-4 text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-3xl font-bold text-emerald-600 ring-1 ring-emerald-100">
+                R
+              </div>
+              <p class="text-2xl font-semibold tracking-tight text-slate-800">Selamat datang di Rakayuku</p>
+            </div>
+
+            <form class="space-y-5" @submit="handleSubmit">
+              <div>
+                <label for="email" class="mb-2 block text-sm font-medium text-slate-600">Email</label>
+                <input
+                  id="email"
+                  v-model="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  required
+                  :disabled="isLoading"
+                  class="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 text-base text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
+                />
+                <p v-if="emailError" class="mt-1.5 text-xs text-red-500">{{ emailError }}</p>
+              </div>
+
+              <div>
+                <label for="password" class="mb-2 block text-sm font-medium text-slate-600">Password</label>
+                <input
+                  id="password"
+                  v-model="password"
+                  type="password"
+                  placeholder="************"
+                  required
+                  :disabled="isLoading"
+                  class="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 text-base text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
+                />
+              </div>
+
+              <div class="flex items-center justify-between pt-1 text-sm">
+                <label class="inline-flex items-center gap-2 text-slate-500">
+                  <input v-model="rememberMe" type="checkbox" class="h-4 w-4 rounded border-slate-300 accent-emerald-600" />
+                  Remember me
+                </label>
+                <button type="button" class="font-medium text-emerald-600 transition hover:text-emerald-700">Reset Password!</button>
+              </div>
+
+              <button
+                type="submit"
+                :disabled="!isFormReady || isLoading"
+                class="mt-1 flex h-12 w-full items-center justify-center rounded-lg bg-emerald-600 px-4 text-base font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+              >
+                <span v-if="!isLoading">Login</span>
+                <span v-else class="flex items-center gap-2">
+                  <svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-30" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0A12 12 0 000 12h4z"></path>
+                  </svg>
+                  Logging in...
+                </span>
+              </button>
+            </form>
+
+
+          </div>
+        </section>
       </div>
-
-      <form @submit="handleSubmit" class="login-form">
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input
-            id="email"
-            v-model="email"
-            type="email"
-            placeholder="admin@example.com"
-            required
-            :disabled="isLoading"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            placeholder="••••••••"
-            required
-            :disabled="isLoading"
-          />
-        </div>
-
-        <button type="submit" class="submit-btn" :disabled="isLoading">
-          <span v-if="!isLoading">Masuk</span>
-          <span v-else class="loading-spinner">
-            <span class="spinner"></span>
-            Proses...
-          </span>
-        </button>
-      </form>
     </div>
   </div>
 </template>
-
-<style scoped>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-.login-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background-color: #f7f7f7;
-  padding: 20px;
-}
-
-.login-card {
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 34px rgba(0, 0, 0, 0.1);
-  padding: 40px;
-  max-width: 400px;
-  width: 100%;
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.login-header h1 {
-  font-family: 'Alumni Sans', sans-serif;
-  font-size: 28px;
-  font-weight: 700;
-  color: #227d55;
-  margin-bottom: 8px;
-}
-
-.login-header p {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  color: #666;
-  font-weight: 400;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-group label {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-.form-group input {
-  padding: 12px 14px;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 8px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  background-color: #fafafa;
-}
-
-.form-group input:hover:not(:disabled) {
-  border-color: #227d55;
-  background-color: #fff;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: #227d55;
-  background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(34, 125, 85, 0.1);
-}
-
-.form-group input:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.submit-btn {
-  padding: 12px 16px;
-  background-color: #227d55;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.submit-btn:hover:not(:disabled) {
-  background-color: #1a5e41;
-  box-shadow: 0 4px 12px rgba(34, 125, 85, 0.3);
-  transform: translateY(-1px);
-}
-
-.submit-btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(34, 125, 85, 0.2);
-}
-
-.submit-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.loading-spinner {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Responsive design */
-@media (max-width: 480px) {
-  .login-card {
-    padding: 30px 20px;
-  }
-
-  .login-header h1 {
-    font-size: 24px;
-  }
-
-  .login-header p {
-    font-size: 13px;
-  }
-
-  .form-group input,
-  .submit-btn {
-    padding: 11px 12px;
-    font-size: 14px;
-  }
-}
-</style>
